@@ -1,6 +1,14 @@
+BRANDING BRAND FORK
+====================
+
+This fork incorporates [pull request #61](https://github.com/mdsol/mesos_cookbook/pull/61)
+which uses apt to install mesos instead of dpkg.
+
+It uses the FAKE version 2.1.0 and is to be replaced when the pull request is merged.
+
+
 Mesos Cookbook
 ==============
-[![Build Status](https://secure.travis-ci.org/mdsol/mesos_cookbook.png?branch=master)](http://travis-ci.org/mdsol/mesos_cookbook)
 
 Application cookbook for installing the [Apache Mesos][] cluster manager.
 Mesos provides efficient resource isolation and sharing across distributed
@@ -209,4 +217,5 @@ specific language governing permissions and limitations under the License.
 [java]: https://github.com/agileorbit-cookbooks/java
 [docker]: https://github.com/bflad/chef-docker
 [chef-sugar]: https://github.com/sethvargo/chef-sugar
+
 

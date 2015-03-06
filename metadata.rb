@@ -3,7 +3,7 @@ name 'mesos'
 maintainer 'Medidata Solutions'
 maintainer_email 'hwilkinson@mdsol.com'
 license 'Apache 2.0'
-description 'Installs/Configures Apache Mesos'
+description 'Branding Brand fork of MDSOL bb_mesos'
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version '2.1.0'
 # rubocop:enable Style/SingleSpaceBeforeFirstArg
