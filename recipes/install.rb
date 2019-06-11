@@ -31,18 +31,54 @@ include_recipe 'mesos::repo' if node['mesos']['repo']
 
 case node['platform_family']
 when 'debian'
-  %w(unzip default-jre-headless libcurl3 libsvn1).each do |pkg|
+  %w(unzip default-jre-headless libcurl4 libsvn1).each do |pkg|
     package pkg do
       action :install
     end
   end
 
-  package 'mesos' do
-    action :install
-    # --no-install-recommends to skip installing zk. unnecessary.
-    options '--no-install-recommends'
-    # Glob is necessary to select the deb version string
-    version "#{node['mesos']['version']}*"
+  # remote_file "#{Chef::Config[:file_cache_path]}/mesos.deb" do
+  remote_file "/data/mesos.deb" do
+    source "http://repos.mesosphere.com/debian/pool/main/m/mesos/mesos_#{node['mesos']['version']}-2.0.6.debian9_amd64.deb"
+    action :create
+    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+  end
+
+  directory "/data/tmp" do
+    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+  end
+
+  execute 'unpack mesos deb' do
+    # command "dpkg-deb -R #{Chef::Config[:file_cache_path]}/mesos.deb #{Chef::Config[:file_cache_path]}/tmp"
+    command "dpkg-deb -R /data/mesos.deb /data/tmp"
+    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+  end
+
+  ruby_block 'update control file' do
+    block do
+      # fe = Chef::Util::FileEdit.new("#{Chef::Config[:file_cache_path]}/tmp/DEBIAN/control")
+      fe = Chef::Util::FileEdit.new("/data/tmp/DEBIAN/control")
+      fe.search_file_replace('libcurl3', 'libcurl3|libcurl4')
+      fe.write_file
+    end
+    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+  end
+
+  execute 'save new deb' do
+    command "dpkg-deb -b /data/tmp #{Chef::Config[:file_cache_path]}/mesos.deb"
+    # command "dpkg-deb -b /data/tmp #{Chef::Config[:file_cache_path]}/mesos.deb"
+    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+  end
+
+  directory '/data/tmp' do
+    action :delete
+    recursive true
+    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+  end
+
+  dpkg_package 'mesos' do
+    source "#{Chef::Config[:file_cache_path]}/mesos.deb"
+    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
   end
 when 'rhel'
   %w(unzip libcurl subversion).each do |pkg|
