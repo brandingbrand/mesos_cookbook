@@ -4,6 +4,7 @@ After=network.target
 Wants=network.target
 
 [Service]
+Environment=LD_PRELOAD=/usr/lib/libcurl.so.3
 ExecStart=<%= @wrapper %>
 Restart=always
 RestartSec=20

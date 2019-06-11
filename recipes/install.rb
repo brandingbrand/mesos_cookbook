@@ -31,27 +31,29 @@ include_recipe 'mesos::repo' if node['mesos']['repo']
 
 case node['platform_family']
 when 'debian'
-  %w(unzip default-jre-headless libcurl4 libsvn1).each do |pkg|
+  %w(unzip default-jre-headless libcurl4 libcurl4-openssl-dev libsvn1).each do |pkg|
     package pkg do
       action :install
     end
   end
 
+  # libcurl3/4 shenanigans
+  # https://bugs.launchpad.net/ubuntu/+source/curl/+bug/1754294/comments/55
   # remote_file "#{Chef::Config[:file_cache_path]}/mesos.deb" do
   remote_file "/data/mesos.deb" do
     source "http://repos.mesosphere.com/debian/pool/main/m/mesos/mesos_#{node['mesos']['version']}-2.0.6.debian9_amd64.deb"
     action :create
-    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+    not_if { ::File.exists? '/usr/sbin/mesos-master' }
   end
 
   directory "/data/tmp" do
-    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+    not_if { ::File.exists? '/usr/sbin/mesos-master' }
   end
 
   execute 'unpack mesos deb' do
     # command "dpkg-deb -R #{Chef::Config[:file_cache_path]}/mesos.deb #{Chef::Config[:file_cache_path]}/tmp"
     command "dpkg-deb -R /data/mesos.deb /data/tmp"
-    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+    not_if { ::File.exists? '/usr/sbin/mesos-master' }
   end
 
   ruby_block 'update control file' do
@@ -61,24 +63,24 @@ when 'debian'
       fe.search_file_replace('libcurl3', 'libcurl3|libcurl4')
       fe.write_file
     end
-    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+    not_if { ::File.exists? '/usr/sbin/mesos-master' }
   end
 
   execute 'save new deb' do
     command "dpkg-deb -b /data/tmp #{Chef::Config[:file_cache_path]}/mesos.deb"
     # command "dpkg-deb -b /data/tmp #{Chef::Config[:file_cache_path]}/mesos.deb"
-    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+    not_if { ::File.exists? '/usr/sbin/mesos-master' }
   end
 
   directory '/data/tmp' do
     action :delete
     recursive true
-    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+    not_if { ::File.exists? '/usr/sbin/mesos-master' }
   end
 
   dpkg_package 'mesos' do
     source "#{Chef::Config[:file_cache_path]}/mesos.deb"
-    not_if { ::File.exists? '/usr/local/sbin/mesos-master' }
+    not_if { ::File.exists? '/usr/sbin/mesos-master' }
   end
 when 'rhel'
   %w(unzip libcurl subversion).each do |pkg|
@@ -96,6 +98,48 @@ when 'rhel'
         .version.to_s
     }
   end
+end
+
+# libcurl3 shenanigans
+# https://dev.to/jake/using-libcurl3-and-libcurl4-on-ubuntu-1804-bionic-184g
+directory '/data/libcurl3' do
+  owner '_apt'
+  group 'root'
+  not_if { ::File.exist?('/usr/lib/libcurl.so.3') }
+end
+
+execute 'download libcurl3' do
+  cwd '/data/libcurl3'
+  command 'apt-get download -o=dir::cache=/data/libcurl3 libcurl3'
+  not_if { ::File.exist?('/usr/lib/libcurl.so.3') }
+end
+
+execute 'ar' do
+  cwd '/data/libcurl3'
+  command 'ar x libcurl3* data.tar.xz'
+  not_if { ::File.exist?('/usr/lib/libcurl.so.3') }
+end
+
+execute 'tar' do
+  cwd '/data/libcurl3'
+  command 'tar xf data.tar.xz'
+  not_if { ::File.exist?('/usr/lib/libcurl.so.3') }
+end
+
+file '/usr/lib/libcurl.so.3' do
+  action :delete
+  not_if { ::File.exist?('/usr/lib/libcurl.so.3') }
+end
+
+execute 'copy file' do
+  command 'cp -L /data/libcurl3/usr/lib/x86_64-linux-gnu/libcurl.so.4 /usr/lib/libcurl.so.3'
+  not_if { ::File.exist?('/usr/lib/libcurl.so.3') }
+end
+
+directory '/data/libcurl3' do
+  action :delete
+  recursive true
+  not_if { ::File.exist?('/usr/lib/libcurl.so.3') }
 end
 
 #
