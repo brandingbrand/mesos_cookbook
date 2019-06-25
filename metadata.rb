@@ -15,3 +15,5 @@ end
 %w(java apt yum).each do |cookbook|
   depends cookbook
 end
+
+depends 'exhibitor', '= 5.0.2'

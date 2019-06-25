@@ -27,7 +27,7 @@ include_recipe 'mesos::install'
 ruby_block 'mesos-master-configuration-validation' do
   block do
     # Get Mesos --help
-    help = Mixlib::ShellOut.new("#{node['mesos']['master']['bin']} --help")
+    help = Mixlib::ShellOut.new("LD_PRELOAD=/usr/lib/libcurl.so.3 #{node['mesos']['master']['bin']} --help")
     help.run_command
     help.error!
     # Extract options
